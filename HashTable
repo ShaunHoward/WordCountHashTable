@@ -1,0 +1,334 @@
+package howard.wordcount;
+
+/**
+ * A class for the hash table of the Word Count project.
+ * This hash table utilizes separate chaining to manage collisions.
+ * 
+ * @author Shaun Howard
+ */
+public class HashTable {
+	
+	/** The count of items in the hash table. */
+	private int itemCount;
+	
+	/** The count of head nodes in the hash table. */
+	private int headCount;
+	
+	/** The load factor of the hash table. */
+	private double loadFactor;
+	
+	/** The table of hashed nodes for the hash table. */
+	private EntryNode[] wordTable;
+	
+	/** The default size of the hash table. */
+	private static final int DEFAULT_SIZE = 32;
+	
+	/**
+	 * Constructor for the hash table of words and occurrences. 
+	 * Useful for making a hash table of specific size.
+	 * 
+	 * @param size - the initial hash table size in slots
+	 */
+	public HashTable(int size){
+		
+		this.headCount = 0;
+		this.itemCount = 0;
+		this.loadFactor = 0;
+		this.wordTable = new EntryNode[size];
+	}
+	
+	/**
+	 * Constructor for the hash table of words and occurrences.
+	 * Sets a default size of 32 slots. 
+	 */
+	public HashTable(){
+		
+		this.headCount = 0;
+		this.itemCount = 0;
+		this.loadFactor = 0;
+		this.wordTable = new EntryNode[DEFAULT_SIZE];
+	}
+	
+	/**
+	 * Re-hashes the hash table due to a load factor of > 1.
+	 */
+	public void rehash(){
+		
+		/* Stores the current node table. */
+		EntryNode[] oldTable = this.wordTable;
+		
+		/* Resizes the current node table. */
+		wordTable = new EntryNode[oldTable.length * 2];
+		
+		/* Re-hashes the previous values into new slots in the new node table. */
+        for(EntryNode a : oldTable){
+        	
+        	/* Checks if the table entry is null. */
+        	if (a != null) {
+        		
+        		/* Inserts the table entry into the new hash table with new hash function. */
+        		for(EntryNode node = a; node.getNext() != null; node = node.getNext()){
+        			
+        			insert(node.getWord(), node.getCount());
+        		}
+        	}
+        }
+                
+	}
+	
+	/**
+	 * Inserts the word and its occurrences into the hash table. 
+	 
+	 * @param word - the word to insert into the table
+	 * @param count - the occurrences of the word in the text
+	 */
+	public void insert(String word, int count){
+		
+		/* Convert the word to lower case for comparison. */
+		String lowerCase = word.toLowerCase();
+		
+		/* Get the node at the hash value index of this word. */
+		EntryNode hashNode = wordTable[hashFunction(lowerCase)];
+		
+		/* Check if the entry is null at this index. */
+		if (hashNode != null){
+		
+			/* Traverse through nodes until last one is reached. */
+			while (hashNode.getNext() != null){
+				
+				hashNode = hashNode.getNext();
+			}
+		
+			/* Set last node to include this word and its occurrences. */
+			hashNode.setNext(new EntryNode(lowerCase, count));
+			
+		} else { //Otherwise, create a new head node for this slot in the table.
+		
+			wordTable[hashFunction(lowerCase)] = new EntryNode(lowerCase, count);
+			
+			/* Increment count of head nodes in table. */
+			this.headCount++;
+		}
+		
+		/* Increment the count of items in the hash table. */
+		this.itemCount++;
+		
+		/* Set the load factor based on item count and table size. */
+		this.setLoadFactor();
+		
+		/* Re-hash the table if the load factor > 1. */
+		if (this.getLoadFactor() > 1){
+			
+			this.rehash();
+		}
+	}
+
+	/**
+	 * Determines if the given word is in the hash table.
+	 * 
+	 * @param word - the word to find in the hash table
+	 * @return  whether or not the given word is already in the hash table 
+	 */
+	public boolean contains(String word){
+		
+		/* Convert word to lower case for comparison. */
+		String lowerCase = word.toLowerCase();
+		
+		/* Traverse the nodes at given hash value index of this word. */
+		for (EntryNode node = wordTable[hashFunction(lowerCase)];
+			node != null; node = node.getNext()){
+			
+			/* When this word is found in a node, return true. */
+			if (lowerCase.equals(node.getWord())) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	/**
+	 * Increases the occurrence of a word in the hash table. 
+	 * 
+	 * @param word - the word to increase occurrence of 
+	 */
+	public void incrementCount(String word){
+		
+		/* Convert word to lower case for comparison. */
+		String lowerCase = word.toLowerCase();
+
+		/* Traverse nodes at given hash value index of this word. */
+		for (EntryNode node = wordTable[hashFunction(lowerCase)]; node != null; node = node.getNext()){
+			
+			/* When this word is found in a node, increment its count. */
+			if (node.getWord().equals(lowerCase)) {
+				
+				node.incrementCount();
+			}
+		}
+		
+	}
+	
+	/**
+	 * The hash function of the hash table.
+	 * The function is based on Java's hashCode() function and the table length.
+	 * 
+	 * @param word - the word to find the hash value of
+	 * @return  the hash value of the word
+	 */
+	public int hashFunction(String word){
+		
+		/* Convert hash value to positive due to some negative values. */
+		return Math.abs(word.hashCode() % this.wordTable.length);
+	}
+	
+	/**
+	 * Set the load factor of the hash table.
+	 * Load factor is number of slots occupied vs. table size.
+	 */
+	public void setLoadFactor(){
+		this.loadFactor = this.headCount / this.wordTable.length;
+	}
+	
+	/**
+	 * Get the load factor of the hash table.
+	 * 
+	 * @return the load factor of the hash table
+	 */
+	public double getLoadFactor(){
+		return this.loadFactor;
+	}
+	
+	/**
+	 * Gets the average length of the collision lists.
+	 * Includes the empty slots of the hash table when calculating average.
+	 * 
+	 * @return the average length of the collision lists
+	 */
+	public double getAvgColLength(){
+		return this.itemCount / this.wordTable.length;
+	}
+	
+	/**
+	 * Output the contents of the hash table as a String.
+	 * The contents are given by: "(word, occurrence)".
+	 * The contents are not output in any specific order.
+	 * 
+	 * @return  the contents of the hash table as a String
+	 * @Override the toString() method of Object
+	 */
+	@Override
+	public String toString(){
+		
+		/* Open-source method for creating a new line. */
+		String nL = System.getProperty("line.separator");
+		
+		/* Builder to create a String output. */
+		StringBuilder builder = new StringBuilder("Here are the words and their number of occurrences: " + nL);
+		
+		/* Traverse through hash table and find every nodes properties. */
+		for(EntryNode a : this.wordTable){
+			
+			/* Only add non-null entries to the builder. */
+			if (a != null) {
+				
+				for(EntryNode node = a; node != null; node = node.getNext()){
+					
+					builder.append("(" + node.getWord() + ", " + node.getCount() + ")" + nL);
+				}
+			}
+        }
+		
+		builder.append(nL + "Here is the average collision list length: " + getAvgColLength());
+		
+		return builder.toString();
+	}
+	
+	/**
+	 * A class for nodes for separate chaining collision handling of the hash table.
+	 * 
+	 * @author Shaun Howard
+	 */
+	private class EntryNode {
+		
+		/** The word of this node. */
+		private String word;
+		
+		/** The link to the next node. */
+		private EntryNode next;
+		
+		/** The count of the word occurrences of this word. */
+		private int count;
+		
+		/**
+		 * Constructor for the hash node.
+		 * Each word begins with an occurrence count of 1.
+		 * Specifically useful for creating an initial hash table.
+		 * 
+		 * @param word - the word to create a node for
+		 */
+		private EntryNode(String word){
+			this.word = word;
+			this.count = 1;
+			this.next = null;
+		}
+		
+		/**
+		 * Constructore for the hash node.
+		 * Each word has a defined count.
+		 * Specifically useful for re-hashing the hash table.
+		 * 
+		 * @param word
+		 * @param wordCount
+		 */
+		private EntryNode(String word, int wordCount){
+			this.word = word;
+			this.count = wordCount;
+			this.next = null;
+		}
+		
+		/**
+		 * Get the word stored in this node.
+		 * 
+		 * @return the word stored in this node
+		 */
+		public String getWord(){
+			return this.word;
+		}
+		
+		/**
+		 * Get the occurrence count of the word in this node.
+		 * 
+		 * @return  the count of occurrences for the word in this node
+		 */
+		public int getCount(){
+			return this.count;
+		}
+		
+		/**
+		 * Increment the count of the word occurrence in this node.
+		 */
+		public void incrementCount(){
+			this.count++;
+		}
+		
+		/**
+		 * Get the next link from this node.
+		 * 
+		 * @return the link to the next node from this node
+		 */
+		public EntryNode getNext(){
+			return this.next;
+		}
+		
+		/**
+		 * Set the next link from this node.
+		 * 
+		 * @param nextNode - the node to set as the link from this node
+		 */
+		public void setNext(EntryNode nextNode){
+			this.next = nextNode;
+		}
+	}
+
+}
