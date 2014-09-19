@@ -1,0 +1,131 @@
+package howard.wordcount;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.Scanner;
+
+/**
+ * A class to count words from a given input text file as part of the Word Count project.
+ * 
+ * @author Shaun Howard
+ */
+public class WordCount {
+	
+	/**
+	 * Reads the input file as a String.
+	 * 
+	 * @param fileName - the name of the file to read 
+	 * @return  the contents of the file as a String
+	 */
+	public static String readFileAsString(String fileName){
+		
+		/* A new file from the file name. */
+		File f = new File(fileName);
+		
+		/* Read file as bytes and return as String. */
+        try {
+        	
+        	/* Byte array of file. */
+            byte[] bytes = Files.readAllBytes(f.toPath());
+            
+            /* String returned from byte array of file. */
+            return new String(bytes,"UTF-8");
+            
+        } catch (FileNotFoundException e) {
+        	System.err.println("File does not exist.");
+        	System.exit(1);
+        } catch (IOException e) {
+        	System.err.println("File cannot be opened.");
+        	System.exit(1);
+        }
+        
+        return "";
+	}
+	
+	/**
+	 * Counts the word occurrences of the given input file.
+	 * Outputs the words and their occurrences as a String.
+	 * 
+	 * @param input_file - the file path of the file to read from
+	 * @return  the words and their occurrences read from the input file
+	 */
+	public static String wordCount(String input_file){
+		
+		/* Read file as String and split using regular expression into array. */
+		String[] splitArray = readFileAsString(input_file).split("[^0-9a-zA-Z]");
+		
+		/* Instantiate a new hash table to insert words and occurrences into. */
+		HashTable table = new HashTable();
+		
+		/* For each word in the file, insert it or increase its occurrence. */
+		for (String a : splitArray){
+			
+			/* If the table does not contain the word, insert it with count 1. */
+			if (!table.contains(a)) {
+				
+				table.insert(a, 1);
+			} else { //Otherwise increment the occurrence count of the word
+				
+				table.incrementCount(a);
+			}
+		}
+
+		/* Prints the table contents, including average collision list length to console. */
+		System.out.print(table.toString());
+		
+		return table.toString();
+	}
+	
+	/**
+	 * Main method to count word occurrences given an input text file.
+	 * Will output words and their occurrences and average collision list length
+	 * into a second text file as well as to console.
+	 * Run program using the input file path and output file path.
+	 *  
+	 * @param args - the input and output file paths
+	 */
+	public static void main(String[] args) {
+		
+		/* Scans for input file path and output file path. */
+		Scanner scanner = new Scanner(System.in);
+    	
+		/* Input file path. */
+    	String fileName = scanner.next();
+    	
+    	/* Output file path. */
+    	String file2Name = scanner.next();
+    	
+    	scanner.close();
+		
+		try {
+			
+			/* Make a new file from the output file path. */
+			File file = new File(file2Name);
+			 
+			/* If a file doesn't exist, create it. */
+			if (!file.exists()) {
+				
+				file.createNewFile();
+			}
+ 
+			/* New file writer for writing purposes. */
+			FileWriter fileWriter = new FileWriter(file.getAbsoluteFile());
+			
+			/* New buffered writer for writing purposes. */
+			BufferedWriter buffWriter = new BufferedWriter(fileWriter);
+			
+			/* Write the words and their occurrences to the output file. */
+			buffWriter.write(wordCount(fileName));
+			
+			buffWriter.close();
+			
+		} catch (Exception e) {
+			System.err.println("An error has occurred reading or writing a file.");
+			System.exit(1);
+		}
+	}
+}
